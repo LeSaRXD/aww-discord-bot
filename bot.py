@@ -32,23 +32,28 @@ with open("counts.json", "r") as count_file:
 		counter = {}
 	print(counter)
 
-with open("counts.json", "w") as count_file:
-	@bot.event
-	async def on_message(message: discord.Message):
-		if message.author == bot.user:
-			return
+@bot.event
+async def on_message(message: discord.Message):
+	if message.author == bot.user:
+		return
 
-		if not is_aww(message.content):
-			return
-		
-		counter[str(message.author.id)] = (count := counter.get(str(message.author.id), 0) + 1)
-
-		await message.channel.send(f"<@{message.author.id}> said aww {count} time{'s' if count > 1 else ''}")
-
+	if not is_aww(message.content):
+		return
+	
+	counter[str(message.author.id)] = (count := counter.get(str(message.author.id), 0) + 1)
 	try:
-		TOKEN = os.getenv("BOT_TOKEN")
-		if TOKEN:
-			bot.run(TOKEN)
-	finally:
-		print(counter)
+		with open("counts.json", "w") as count_file:
+			json.dump(counter, count_file)
+	except e:
+		print(f"ERROR: {e}\n\n\n\n{counter}")
+
+	await message.channel.send(f"<@{message.author.id}> said aww {count} time{'s' if count > 1 else ''}")
+
+try:
+	TOKEN = os.getenv("BOT_TOKEN")
+	if TOKEN:
+		bot.run(TOKEN)
+finally:
+	print(counter)
+	with open("counts.json", "w") as count_file:
 		json.dump(counter, count_file)
