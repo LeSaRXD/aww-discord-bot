@@ -16,10 +16,21 @@ bot = discord.Client(intents=intents)
 
 
 counter = {}
+message_presets = {}
+
+
 
 def is_aww(text):
 	text = [char for char in text.lower() if char in ascii_lowercase]
 	return all([char in ["a", "w"] for char in text]) and (list(text) == sorted(text)) and ("a" in text) and ("w" in text)
+
+def total_aww_count():
+	return sum(counter.values())
+
+async def update_status():
+	await bot.change_presence(status=discord.Status.online, activity=discord.Activity(type=3, name=f"{total_aww_count()} awws total"))
+
+
 
 async def aww(message):
 	counter[str(message.author.id)] = (count := counter.get(str(message.author.id), 0) + 1)
@@ -29,13 +40,21 @@ async def aww(message):
 	except e:
 		print(f"ERROR: {e}\n\n\n\n{counter}")
 
-	await message.channel.send(f"<@{message.author.id}> said aww {count} time{'s' if count > 1 else ''}")
+	preset = message_presets.get(str(message.author.id), message_presets["default"]) \
+		.format(message.author.id, count, 's' if count > 1 else '')
 
-def total_awws():
-	return sum(counter.values())
+	await message.channel.send(preset)
+	# await message.channel.send(f"<@{message.author.id}> said aww {count} time{'s' if count > 1 else ''}")
 
-async def update_status():
-	await bot.change_presence(status=discord.Status.online, activity=discord.Activity(type=3, name=f"{total_awws()} awws total"))
+async def total_awws(message):
+	count = counter.get(str(message.author.id), 0)
+		
+	preset = message_presets.get(str(message.author.id), message_presets["default"]) \
+		.format(message.author.id, count, 's' if count > 1 else '')
+	total_preset = message_presets["total"].format(total_aww_count())
+	
+	await message.channel.send(preset + "\n" + total_preset)
+
 
 
 @bot.event
@@ -48,8 +67,7 @@ async def on_message(message: discord.Message):
 		await update_status()
 
 	elif f"<@{bot.user.id}>" in message.content:
-		c = counter.get(str(message.author.id), 0)
-		await message.channel.send(f"<@{message.author.id}> said aww {c} time{'s' if c != 1 else ''}\nTotal awws: {total_awws()}")
+		await total_awws(message)
 		
 @bot.event
 async def on_ready():
@@ -57,6 +75,12 @@ async def on_ready():
 	await update_status()
 
 
+
+with open("presets.json", "r") as messages_file:
+	try:
+		message_presets = json.load(messages_file)
+	except:
+		print("error opening presets.json")
 
 with open("counts.json", "r") as count_file:
 	try:
